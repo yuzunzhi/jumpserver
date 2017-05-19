@@ -124,7 +124,10 @@ def record_add(request):
                 error = u'SOA记录已存在'
                 raise ServerError(error)
 
-            db_add_record(domain, host, data, type, ttl)
+            if type == "SOA":
+                db_add_soa_record(domain, host, data, ttl)
+            else:
+                db_add_record(domain, host, data, type, ttl)
 
         except ServerError:
             pass
@@ -143,9 +146,26 @@ def record_del(request):
     """
     record_id = request.GET.get('id', '')
     record_id_list = record_id.split(',')
-    db_del_record(record_id_list)
+    for record_id in record_id_list:
+        record = Records.objects.get(id=record_id)
+        type = record.type
+        if type == "SOA":
+            tag = True
+            break
+        else:
+            tag = False
 
-    return HttpResponse('删除成功')
+    if tag:
+        response = 'SOA记录不能删除'
+    else:
+        for record_id in record_id_list:
+            record = Records.objects.get(id=record_id)
+            zone = record.zone
+            db_del_record(record_id, zone)
+        response = '删除成功'
+
+
+    return HttpResponse(response)
 
 @require_role(role='super')
 def record_edit(request):
@@ -173,6 +193,7 @@ def record_edit(request):
                 raise ServerError(error)
 
             db_edit_record(id, host, data, type, ttl)
+
         except ServerError:
             pass
         except TypeError:

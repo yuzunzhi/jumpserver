@@ -21,6 +21,15 @@ def db_add_record(zone, host, data, type, ttl):
     soa_record.save()
 
 
+def db_add_soa_record(zone, host, data, ttl):
+    serial = int(strftime("%Y%m%d")) * 100
+    soa_record = Records(
+        zone=zone, host=host, data=data, type="SOA", ttl=ttl, refresh=600, retry=600, expire=3600, minimum=3600,
+        serial=serial, resp_person="zunzhiyu", primary_ns=data)
+    soa_record.save()
+
+
+
 def db_edit_record(id, host, data, type, ttl):
     record = Records.objects.get(id=id)
     record.host, record.data, record.type, record.ttl = (host, data, type, ttl)
@@ -30,11 +39,8 @@ def db_edit_record(id, host, data, type, ttl):
     soa_record.save()
 
 
-def db_del_record(record_id_list):
-    zone = Records.objects.get(id=record_id_list[0]).zone
-
-    for record_id in record_id_list:
-        Records.objects.filter(id=record_id).delete()
+def db_del_record(record_id, zone):
+    Records.objects.filter(id=record_id).delete()
 
     soa_record = Records.objects.get(zone=zone, type="SOA")
     soa_record.serial = soa_record.serial + 1
